@@ -16,7 +16,7 @@ namespace ihexParser
 			ReadOnlySpan<byte> bytes = memoryStream.ToArray().AsSpan();
 			uint currentOffset = 0;
 			uint lastSegmentStart = 0;
-			var outputStream = new MemoryStream(); //File.Create(@"C:\Users\zhent\OneDrive\Documents\ReverseEngineering\INFI1200.bin");
+			var outputStream = File.Create(@"C:\Users\zhent\OneDrive\Documents\ReverseEngineering\INFI1200.bin");
 			while (!bytes.IsEmpty && bytes[0] == ':')
 			{
 				bytes.Read<byte>();
@@ -72,7 +72,7 @@ namespace ihexParser
 
 			Console.WriteLine($"Completed! With {bytes.Length} remaining bytes in the file unparsed.");
 			Console.WriteLine($"{outputStream.Length:N0} binary output length");
-			
+			outputStream.Close();
 			Console.ReadLine();
 		}
 	}
