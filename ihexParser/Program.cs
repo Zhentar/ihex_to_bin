@@ -15,7 +15,8 @@ namespace ihexParser
 			stream.CopyTo(memoryStream);
 			ReadOnlySpan<byte> bytes = memoryStream.ToArray().AsSpan();
 			uint currentOffset = 0;
-			var outputStream = File.Create(@"C:\Users\zhent\OneDrive\Documents\ReverseEngineering\INFI1200.bin");
+			uint lastSegmentStart = 0;
+			var outputStream = new MemoryStream(); //File.Create(@"C:\Users\zhent\OneDrive\Documents\ReverseEngineering\INFI1200.bin");
 			while (!bytes.IsEmpty && bytes[0] == ':')
 			{
 				bytes.Read<byte>();
@@ -32,10 +33,6 @@ namespace ihexParser
 					offset = BinaryPrimitives.ReverseEndianness(offset);
 				}
 				var recType = bytes.Read<byte>();
-				if (offset != 0 && recType != 0)
-				{
-					Console.WriteLine("Surprise! Non-zero 16 bit offset!");
-				}
 				var data = bytes.Split(recLen);
 				var checksum = bytes.Read<byte>();
 				switch (recType)
@@ -44,12 +41,21 @@ namespace ihexParser
 						var position = currentOffset + offset;
 						if (position != outputStream.Position)
 						{
-							Console.WriteLine($"Seeking to {position:X8}");
+							if (outputStream.Position != lastSegmentStart)
+							{
+								Console.WriteLine($"Wrote segment from {lastSegmentStart:X8} to {outputStream.Position:X8}");
+							}
+
+							lastSegmentStart = position;
 							outputStream.Seek(position, SeekOrigin.Begin);
 						}
 						outputStream.Write(data);
 						break;
 					case 1:
+						if (outputStream.Position != lastSegmentStart)
+						{
+							Console.WriteLine($"Wrote segment from {lastSegmentStart:X8} to {outputStream.Position:X8}");
+						}
 						//end of file... at the end of the file.
 						break;
 					case 2:
