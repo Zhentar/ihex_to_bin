@@ -10,13 +10,14 @@ namespace ihexParser
 	{
 		static void Main(string[] args)
 		{
-			var stream = File.OpenRead(@"C:\Users\zhent\OneDrive\Documents\ReverseEngineering\INFI1200.hex");
+			var stream = File.OpenRead(@"C:\Users\zhent\OneDrive\Documents\ReverseEngineering\BINF0130.hex");
 			var memoryStream = new MemoryStream();
 			stream.CopyTo(memoryStream);
 			ReadOnlySpan<byte> bytes = memoryStream.ToArray().AsSpan();
 			uint currentOffset = 0;
 			uint lastSegmentStart = 0;
-			var outputStream = File.Create(@"C:\Users\zhent\OneDrive\Documents\ReverseEngineering\INFI1200.bin");
+			uint baseAddress = 0;
+			var outputStream = File.Create(@"C:\Users\zhent\OneDrive\Documents\ReverseEngineering\BINF0130.bin");
 			while (!bytes.IsEmpty && bytes[0] == ':')
 			{
 				bytes.Read<byte>();
@@ -38,12 +39,12 @@ namespace ihexParser
 				switch (recType)
 				{
 					case 0:
-						var position = currentOffset + offset;
+						var position = currentOffset + offset - baseAddress;
 						if (position != outputStream.Position)
 						{
 							if (outputStream.Position != lastSegmentStart)
 							{
-								Console.WriteLine($"Wrote segment from {lastSegmentStart:X8} to {outputStream.Position:X8}");
+								Console.WriteLine($"Wrote segment from {lastSegmentStart + baseAddress:X8} to {outputStream.Position + baseAddress:X8}");
 							}
 
 							lastSegmentStart = position;
@@ -54,7 +55,7 @@ namespace ihexParser
 					case 1:
 						if (outputStream.Position != lastSegmentStart)
 						{
-							Console.WriteLine($"Wrote segment from {lastSegmentStart:X8} to {outputStream.Position:X8}");
+							Console.WriteLine($"Wrote segment from {lastSegmentStart + baseAddress:X8} to {outputStream.Position + baseAddress:X8}");
 						}
 						//end of file... at the end of the file.
 						break;
@@ -63,6 +64,14 @@ namespace ihexParser
 						break;
 					case 4:
 						currentOffset = (uint)(BinaryPrimitives.ReadUInt16BigEndian(data) << 16);
+						if (outputStream.Position == 0)
+						{
+							baseAddress = currentOffset;
+							Console.WriteLine($"Base Address: {baseAddress:X8}");
+						}
+						break;
+					case 5:
+						Console.WriteLine($"Entry point: {BinaryPrimitives.ReadUInt32BigEndian(data):X8}");
 						break;
 					default:
 						Console.WriteLine($"Unknown Record type {recType}");
